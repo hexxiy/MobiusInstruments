@@ -1,0 +1,27 @@
+{
+  "slug": "MobiusInstruments",
+  "name": "Mobius Instruments",
+  "version": "2.0.0",
+  "license": "proprietary",
+  "brand": "Mobius Insturments",
+  "author": "Hexxi",
+  "authorEmail": "mobiusInstruments@gmail.com",
+  "authorUrl": "mobiusinstruments.com",
+  "pluginUrl": "",
+  "manualUrl": "",
+  "sourceUrl": "",
+  "donateUrl": "",
+  "changelogUrl": "",
+  "modules": [
+    {
+      "slug": "Trinity",
+      "name": "Trinity",
+      "description": "Multi-Type VCF",
+      "tags": [
+        "vcf",
+        "mixer",
+        "vca"
+      ]
+    }
+  ]
+}
