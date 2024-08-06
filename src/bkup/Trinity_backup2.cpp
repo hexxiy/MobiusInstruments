@@ -3,9 +3,6 @@
 
 const float kFreqKnobMin = 20.f;
 const float kFreqKnobMax = 20000.f;
-const float kDefaultSampleRate = 88200.f;
-const float kDefaultFrequency = 1000.f;
-const float kMaxResonance = 2.f;
 
 class SinglePoleLowpassFilter {
 private:
@@ -17,7 +14,7 @@ private:
     const float dcBlockCoeff = 0.995f;
 
 public:
-    SinglePoleLowpassFilter() : y1(0), sampleRate(kDefaultSampleRate), frequency(kDefaultFrequency), dcBlock(0) {
+    SinglePoleLowpassFilter() : y1(0), sampleRate(88200), frequency(1000), dcBlock(0) {
         updateCoefficients();
     }
 
@@ -108,9 +105,12 @@ public:
     }
 };
 
+
+
+
 class UnifiedFilter {
 private:
-    SinglePoleLowpassFilter lpf1, lpf2, lpf3;
+    SinglePoleLowpassFilter lpf;
     SinglePoleHighpassFilter hpf;
     float sampleRate;
     float frequency;
@@ -128,30 +128,15 @@ private:
         return std::tanh(x);
     }
 
-    // Gain calculation functions
-    float lpGain(float modeCtrl) {
-        return 1.0f - std::abs(modeCtrl) / 5.0f;
-    }
-
-    float bpGain(float modeCtrl) {
-        return modeCtrl <= 0 ? 1.0f - std::abs(modeCtrl) / 5.0f : 0.0f;
-    }
-
-    float hpGain(float modeCtrl) {
-        return modeCtrl >= 0 ? modeCtrl / 5.0f : 0.0f;
-    }
-
 public:
     UnifiedFilter()
-        : sampleRate(kDefaultSampleRate), frequency(kDefaultFrequency), resonance(0), feedback(0), lastOutput(0) {
+        : sampleRate(88200), frequency(1000), resonance(0), feedback(0), lastOutput(0) {
         updateCoefficients();
     }
 
     void setSampleRate(float sr) {
         sampleRate = sr;
-        lpf1.setSampleRate(sr);
-        lpf2.setSampleRate(sr);
-        lpf3.setSampleRate(sr);
+        lpf.setSampleRate(sr);
         hpf.setSampleRate(sr);
         updateCoefficients();
     }
@@ -167,40 +152,43 @@ public:
     }
 
     void updateCoefficients() {
-        lpf1.setCutoff(frequency);
-        lpf2.setCutoff(frequency);
-        lpf3.setCutoff(frequency);
+        lpf.setCutoff(frequency);
         hpf.setCutoff(frequency);
         feedback = resonance * 4.0f; // Adjust this multiplier to taste
     }
 
-    float process(float input1, float input2, float input3, float modeCtrl, float typeParam) {
-        float summedInput = input1 + input2 + input3;
-        float noisyInput = summedInput + noise();
-        float resonanceInput = softClip(feedback * (lastOutput * 5));
+    float process(float input, float modeCtrl) {
+        float noisyInput = input + noise();
+        float resonanceInput = softClip(feedback * (lastOutput*5));
 
-        if (typeParam >= 1.0f) {  // Type 1 processing
-            // 3-pole lowpass filter
-            float lpOut = lpf1.process(lpf2.process(lpf3.process(noisyInput + resonanceInput)));
+        // Process through all filters
+        float lpOut = lpf.process(lpf.process(lpf.process(noisyInput + resonanceInput)));
+        float bpOut = hpf.process(lpf.process(noisyInput + resonanceInput));
+        float hpOut = hpf.process(noisyInput + resonanceInput);
 
-            // Bandpass filter (HPF -> LPF)
-            float bpOut = lpf1.process(hpf.process(noisyInput + resonanceInput));
-
-            // Highpass filter
-            float hpOut = hpf.process(noisyInput + resonanceInput);
-
-            // Apply gains based on modeCtrl
-            float output = lpOut * lpGain(modeCtrl) +
-                           bpOut * bpGain(modeCtrl) +
-                           hpOut * hpGain(modeCtrl);
-
-            lastOutput = output;
-            return output;
-        } else {  // Type 0 processing (or any other type)
-            // Implement the original behavior or any other desired behavior
-            // This is just a placeholder
-            return noisyInput;
+        // Mix outputs based on mode control
+        float output;
+        if (modeCtrl <= -5.0f) {
+            // Pure bandpass
+            output = bpOut;
+        } else if (modeCtrl >= 5.0f) {
+            // Pure highpass
+            output = hpOut;
+        } else if (modeCtrl == 0.0f) {
+            // Pure lowpass
+            output = lpOut;
+        } else if (modeCtrl < 0.0f) {
+            // Blend between bandpass and lowpass
+            float blendFactor = (modeCtrl + 5.0f) / 5.0f;
+            output = bpOut * (1.0f - blendFactor) + lpOut * blendFactor;
+        } else {
+            // Blend between lowpass and highpass
+            float blendFactor = modeCtrl / 5.0f;
+            output = lpOut * (1.0f - blendFactor) + hpOut * blendFactor;
         }
+
+        lastOutput = output;
+        return output;
     }
 };
 
@@ -236,8 +224,7 @@ struct Trinity : Module {
 		LIGHTS_LEN
 	};
 
-  SinglePoleLowpassFilter singlePoleLowpassFilter;
-  SinglePoleHighpassFilter singlePoleHighpassFilter;
+
   UnifiedFilter unifiedFilter;
 
 	Trinity() {
@@ -277,21 +264,17 @@ void process(const ProcessArgs& args) override {
          float input = inputs[IN1_INPUT + i].getVoltage();
          float gain = params[ATT1_PARAM + i].getValue();
          inputValues[i] = input * gain;
-
-          if (inputValues[i] > 5.0f) {
-            float excess = inputValues[i] - 5.0f;
-            inputValues[i] = 5.0f + std::tanh(excess);
-          } else if (inputValues[i] < -5.0f) {
-            float excess = -5.0f - inputValues[i];
-            inputValues[i] = -5.0f - std::tanh(excess);
-          }
-
-         //summedInput += inputValues[i];
+         summedInput += inputValues[i];
      }
 
-
-
-     //check for filter TYPE_PARAM
+     // Apply distortion to summed input
+     if (summedInput > 5.0f) {
+         float excess = summedInput - 5.0f;
+         summedInput = 5.0f + std::tanh(excess);
+     } else if (summedInput < -5.0f) {
+         float excess = -5.0f - summedInput;
+         summedInput = -5.0f - std::tanh(excess);
+     }
 
      // Update filter parameters
      float cutoffFreq = std::pow(2.f, params[FREQ_CTRL_PARAM].getValue());
@@ -300,11 +283,6 @@ void process(const ProcessArgs& args) override {
      float fmAmount = params[FM_CTRL_PARAM].getValue();
      float fmCV = inputs[FM_INPUT].getVoltage() / 5.f; // Assuming +/-5V CV range
      cutoffFreq *= std::pow(2.f, fmAmount * fmCV);
-
-
-
-
-
 
      // Update unified filter parameters
      unifiedFilter.setSampleRate(args.sampleRate);
@@ -315,9 +293,8 @@ void process(const ProcessArgs& args) override {
 
      // Process unified filter
      float modeCtrl = params[MODE_CTRL_PARAM].getValue();
-     float typeParam = params[TYPE_PARAM].getValue();
-     filteredOutput = unifiedFilter.process(inputValues[1],inputValues[2],inputValues[3], modeCtrl,typeParam );
-//  float process(float input1, float input2, float input3, float modeCtrl, float typeParam) {
+     filteredOutput = unifiedFilter.process(summedInput, modeCtrl);
+
      // Apply VCA gain and clamp
      float vcaGain = params[LEVEL_CTRL_PARAM].getValue();
      float vcaOut = rack::math::clamp(filteredOutput * vcaGain, -11.0f, 11.0f);
