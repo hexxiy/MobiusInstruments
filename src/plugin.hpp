@@ -8,6 +8,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 extern Model* modelTrinity;
+extern Model* modelMonad;
 // Declare each Model, defined in each module source file
 // extern Model* modelMyModule;
 
