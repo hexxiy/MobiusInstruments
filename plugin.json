@@ -22,6 +22,16 @@
         "mixer",
         "vca"
       ]
+    },
+	{
+      "slug": "Monad",
+      "name": "monad",
+      "description": "VCO",
+      "tags": [
+        "vco",
+        "mixer",
+        "noise"
+      ]
     }
   ]
 }
