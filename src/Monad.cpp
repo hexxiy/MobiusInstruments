@@ -21,7 +21,7 @@ struct Monad : Module {
 		SYNCIN_INPUT,
 		FREQCVIN_INPUT,
 		EXTIN_INPUT,
-		//EXTIN_INPUT,
+		LMIN_INPUT,
 		SHAPEIN_INPUT,
 		PWMIN_INPUT,
 		FMIN_INPUT,
@@ -51,7 +51,7 @@ struct Monad : Module {
 		configParam(PWNATT_PARAM, 0.f, 1.f, 0.f, "");
 		configInput(SYNCIN_INPUT, "");
 		configInput(FREQCVIN_INPUT, "");
-		configInput(EXTIN_INPUT, "");
+		configInput(LMIN_INPUT, "");
 		configInput(EXTIN_INPUT, "");
 		configInput(SHAPEIN_INPUT, "");
 		configInput(PWMIN_INPUT, "");
@@ -73,13 +73,11 @@ struct Monad : Module {
  */
 
   void incrementPhase(float freq,float sampleRate) {
-      
-      
+  
       float _phase = 0.f; 
-      float _2PI = 2.f * M_PI;                   //
+      float _2PI = 2.f * M_PI;             //easier to write
 
-
-    //calculate the phase incrementPhase
+      //calculate the phase incrementPhase
       float phase_increment = _2PI * freq / sampleRate;
 
       //oscillator + 1 step
@@ -127,21 +125,21 @@ struct Monad : Module {
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParam<RoundBlackKnob>(mm2px(Vec(49.09, 22.79)), module, Monad::RANGE_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(30.35, 25.95)), module, Monad::CFREQCTRL_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.88, 40.825)), module, Monad::FFREQCTRL_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(10.05, 58.95)), module, Monad::WIDTHCTRL_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(30.35, 58.75)), module, Monad::FMCTRL_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.8, 58.72)), module, Monad::SHAPECTRL_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(10.05, 78.45)), module, Monad::PWNATT_PARAM));
+		addParam(createParam<CKSS>(mm2px(Vec(48.50, 22.79)), module, Monad::RANGE_PARAM));
+		addParam(createParamCentered<Davies1900hLargeBlackKnob>(mm2px(Vec(30.35, 25.95)), module, Monad::CFREQCTRL_PARAM));
+		addParam(createParamCentered<Trimpot>(mm2px(Vec(50.88, 40.825)), module, Monad::FFREQCTRL_PARAM));
+		addParam(createParamCentered<Davies1900hBlackKnob>(mm2px(Vec(10.05, 58.95)), module, Monad::WIDTHCTRL_PARAM));
+		addParam(createParamCentered<Davies1900hBlackKnob>(mm2px(Vec(30.35, 58.75)), module, Monad::FMCTRL_PARAM));
+		addParam(createParamCentered<Davies1900hBlackKnob>(mm2px(Vec(50.8, 58.72)), module, Monad::SHAPECTRL_PARAM));
+		addParam(createParamCentered<Trimpot>(mm2px(Vec(10.05, 78.45)), module, Monad::PWNATT_PARAM));
 
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(10.05, 18.95)), module, Monad::SYNCIN_INPUT));
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(10.05, 36.95)), module, Monad::FREQCVIN_INPUT));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(23.981, 78.389)), module, Monad::EXTIN_INPUT));
+		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(23.981, 78.389)), module, Monad::FMIN_INPUT));
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(37.106, 78.45)), module, Monad::EXTIN_INPUT));
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(51.05, 78.45)), module, Monad::SHAPEIN_INPUT));
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(10.05, 95.95)), module, Monad::PWMIN_INPUT));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(24.05, 95.95)), module, Monad::FMIN_INPUT));
+		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(24.05, 95.95)), module, Monad::LMIN_INPUT));
 
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(37.05, 95.95)), module, Monad::NOISEOUT_OUTPUT));
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(51.05, 95.95)), module, Monad::MORPHOUT_OUTPUT));
